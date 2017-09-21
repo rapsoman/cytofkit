@@ -1,0 +1,147 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Try the fast largVis KNN algorithm to speed up phenograph
+
+```{r}
+library(cytofkit)
+library(mclust)
+```
+
+
+
+
+```{r}
+
+test = t(replicate(10^4, rnorm(40)))
+
+iris_unique <- unique(iris) # Remove duplicates
+test <- as.matrix(iris_unique[,1:4])
+
+x <- rbind(matrix(rnorm(7000, sd = 0.3), ncol = 2),
+           matrix(rnorm(7000, mean = 1, sd = 0.3), ncol = 2))
+colnames(x) <- c("x", "y")
+test = x
+
+data("USArrests")
+my_data <- USArrests
+# Remove any missing value (i.e, NA values for not available)
+my_data <- na.omit(my_data)
+# Scale variables
+my_data <- scale(my_data)
+#n1 = find_neighbors_rand_proj(test, 5)
+#n2 = find_neighbors(test, 6)
+test = my_data
+start.time <- Sys.time()
+out_lv = Rphenograph(test, k=45, approx=T, max_iter=5)
+end.time <- Sys.time()
+print('\n')
+print(end.time-start.time)
+
+start.time <- Sys.time()
+out_ph = Rphenograph((test), k=45)
+end.time <- Sys.time()
+print('\n')
+print(end.time-start.time)
+
+```
+
+```{r}
+
+```
+
+```{r}
+library(mclust)
+adjustedRandIndex(out_lv$membership, out_ph$membership)
+
+```
+
+```{r}
+library(mnist)
+data(mnist)
+
+test_pc = prcomp(mnist$train$x)
+
+test = scale(test_pc$x[,1:40])
+```
+```{r compare runtimes}
+start.time <- Sys.time()
+out_lv = Rphenograph(test, k=30, approx=T, max_iter=4)
+end.time <- Sys.time()
+print('\n')
+print(end.time-start.time)
+```
+
+```{r compare runtimes}
+
+start.time <- Sys.time()
+out_ph = Rphenograph((test), k=30)
+end.time <- Sys.time()
+print('\n')
+print(end.time-start.time)
+adjustedRandIndex((out_lv$membership), (out_ph$membership))
+```
+```{r}
+adjustedRandIndex((out_lv$membership), (out_ph$membership))
+```
+
+```{r largevis + phenograph}
+library(largeVis)
+lv = largeVis::largeVis(t(test),max_iter = 5)
+
+```
+Load mnist from python 20170921_mnist_phenogrpah for direct comparison with the python version of phenograph
+-> python phenograph takes 6-8 min
+```{r}
+library(feather)
+feather_python = feather::read_feather('/home/vitoz/Git/vz-bod/Varia/mnistdata.feather')
+membership_python= as.matrix(feather_python[, 41][,1])
+dat_python = feather_python[, 1:40]
+```
+
+
+
+```{r compare runtimes}
+start.time <- Sys.time()
+out_lv = Rphenograph(dat_python, k=30, approx=T, max_iter=4)
+end.time <- Sys.time()
+print('\n')
+print(end.time-start.time)
+```
+
+-> largevis phenograph is ca 3-4 fold faster
+
+How do the results compare?
+```{r}
+membership_lvknn = out_lv$membership
+adjustedRandIndex(membership_lvknn, membership_python)
+```
+-> not bad rand index
+
+Rand index between 2 different python runs:
+```{r}
+feather_python_2 = feather::read_feather('/home/vitoz/Git/vz-bod/Varia/mnistdata_run2.feather')
+membership_python_2= as.matrix(feather_python_2[, 41][,1])
+adjustedRandIndex(membership_python_2, membership_python)
+adjustedRandIndex(membership_python_2, membership_lvknn)
+```
+-> the difference between 2 phenograph runs can be even bigger then approximate knn vs python
+```{r}
+feather_python_3 = feather::read_feather('/home/vitoz/Git/vz-bod/Varia/mnistdata_run3.feather')
+membership_python_3= as.matrix(feather_python_3[, 41][,1])
+adjustedRandIndex(membership_python_3, membership_python)
+adjustedRandIndex(membership_python_3, membership_lvknn)
+```
+
+Random reruns of python phenograph can have slightly different number of clusters:
+```{r}
+max(membership_python_3)
+max(membership_python_2)
+max(membership_python)
+max(membership_lvknn)
+
+```
+
+-> approximate KNN is comparable with phenograph KNN

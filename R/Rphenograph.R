@@ -37,7 +37,7 @@
 #' iris_unique <- unique(iris) # Remove duplicates
 #' data <- as.matrix(iris_unique[,1:4])
 #' Rphenograph_out <- Rphenograph(data, k = 45)
-Rphenograph <- function(data, k=30){
+Rphenograph <- function(data, k=30,  approx=F, neighbormat=NULL, ...){
     if(is.data.frame(data))
         data <- as.matrix(data)
     
@@ -54,11 +54,21 @@ Rphenograph <- function(data, k=30){
         "  -Input data of ", nrow(data)," rows and ", ncol(data), " columns","\n",
         "  -k is set to ", k)
     
-    cat("  Finding nearest neighbors...")
-    t1 <- system.time(neighborMatrix <- find_neighbors(data, k=k+1)[,-1])
+    if (is.null(neighbormat)){
+        cat("  Finding nearest neighbors...")
+        if (approx == F){
+            t1 <- system.time(neighborMatrix <- find_neighbors(data, k=k+1)[,-1])
+        } else {
+            t1 <- system.time(neighborMatrix <- find_neighbors_rand_proj(data, k=k, ...))     
+        }
+        cat("DONE ~",t1[3],"s\n")
+    } else {
+        cat("  Use provided neightboorhood matrix...")
+    }
+    
     cat("DONE ~",t1[3],"s\n", " Compute jaccard coefficient between nearest-neighbor sets...")
     t2 <- system.time(links <- jaccard_coeff(neighborMatrix))
-
+    
     cat("DONE ~",t2[3],"s\n", " Build undirected graph from the weighted links...")
     links <- links[links[,1]>0, ]
     relations <- as.data.frame(links)
@@ -101,4 +111,27 @@ Rphenograph <- function(data, k=30){
 find_neighbors <- function(data, k){
     nearest <- nn2(data, data, k, treetype = "bd", searchtype = "standard")
     return(nearest[[1]])
+}
+
+#' Fast approximate KNN using randomProjectionTreeSearch
+#' as implemented in largeVis
+#' 
+#' @param data matrix; input data matrix
+#' @param k integer; number of nearest neighbours
+#' 
+#' @return a n-by-k matrix of neighbor indices
+#' 
+#' @examples
+#' iris_unique <- unique(iris) # Remove duplicates
+#' data <- as.matrix(iris_unique[,1:4])
+#' neighbors <- find_neighbors_rand_proj(t(data), k=10)
+#' 
+#' @importFrom largeVis randomProjectionTreeSearch
+#' @export
+#' 
+
+find_neighbors_rand_proj <- function(data, k, ...){
+    
+    nearest <- randomProjectionTreeSearch(t(data), K=k, ...)
+    return(t(nearest+1))
 }

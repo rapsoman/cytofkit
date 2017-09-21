@@ -4,12 +4,16 @@
 \alias{Rphenograph}
 \title{RphenoGraph clustering}
 \usage{
-Rphenograph(data, k = 30)
+Rphenograph(data, k = 30, approx = F, neighbormat = NULL, ...)
 }
 \arguments{
 \item{data}{Input data matrix.}
 
 \item{k}{Number of nearest neighbours, default is 30.}
+
+\item{data}{matrix; input data matrix}
+
+\item{k}{integer; number of nearest neighbours}
 }
 \value{
 a communities object, the operations of this class contains:
@@ -27,6 +31,8 @@ a communities object, the operations of this class contains:
 \item{show_trace}{returns a character vector.}
 \item{code_len}{returns a numeric scalar for communities found with the InfoMAP method and NULL for other methods.}
 \item{plot}{for communities objects returns NULL, invisibly.}
+
+a n-by-k matrix of neighbor indices
 }
 \description{
 R implementation of the phenograph algorithm
@@ -41,6 +47,13 @@ using the well known [Louvain method](https://sites.google.com/site/findcommunit
 iris_unique <- unique(iris) # Remove duplicates
 data <- as.matrix(iris_unique[,1:4])
 Rphenograph_out <- Rphenograph(data, k = 45)
+Fast approximate KNN using randomProjectionTreeSearch
+as implemented in largeVis
+
+iris_unique <- unique(iris) # Remove duplicates
+data <- as.matrix(iris_unique[,1:4])
+neighbors <- find_neighbors_rand_proj(t(data), k=10)
+
 }
 \references{
 Jacob H. Levine and et.al. Data-Driven Phenotypic Dissection of AML Reveals Progenitor-like Cells that Correlate with Prognosis. Cell, 2015.
